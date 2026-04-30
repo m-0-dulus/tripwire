@@ -3,6 +3,7 @@ console.log("tripwire running");
 // states
 let score = 100;
 let issues = [];
+let detectedSet = new Set();
 
 // widget
 const widget = document.createElement("div");
@@ -18,26 +19,35 @@ widget.style.fontSize = "14px";
 widget.style.zIndex = "999999";
 widget.style.fontFamily = "system-ui, sans-serif";
 widget.style.boxShadow = "0 0 10px rgba(0,0,0,0.4)";
-widget.innerText = "tripwire ACTIVE\nScore: 100/100";
+widget.style.transition = "all 0.3s ease";
 
+widget.innerText = "tripwire is running...\nScore: 100/100";
 document.body.appendChild(widget);
 
-// --- UPDATE SCORE ---
+// to update score
 function updateScore(amount, reason) {
+  if (detectedSet.has(reason)) return;
+
+  detectedSet.add(reason);
   score = Math.max(score - amount, 0);
   issues.push(reason);
 
-  widget.innerText = `tripwire ACTIVE\nScore: ${score}/100\nLast: ${reason}`;
+  widget.innerText = `tripwire is running...\nScore: ${score}/100\nLast: ${reason}`;
 }
 
-// safe text
-function highlightText(pattern, label) {
+// safety lol 
+function highlightText(pattern) {
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
 
   let node;
   while ((node = walker.nextNode())) {
-    if (node.parentNode && node.nodeValue.match(pattern)) {
+    if (
+      node.parentNode &&
+      !node.parentNode.classList?.contains("tripwire-highlight") &&
+      pattern.test(node.nodeValue)
+    ) {
       const span = document.createElement("span");
+      span.className = "tripwire-highlight";
       span.style.background = "red";
       span.style.color = "white";
       span.style.padding = "2px 4px";
@@ -54,7 +64,7 @@ function detectDiscountFraming() {
   const text = document.body.innerText.toLowerCase();
 
   if (text.match(/up to \d+% off/)) {
-    updateScore(15, "Heavy discount framing");
+    updateScore(15, "heavy discount framing");
     highlightText(/up to \d+% off/i);
   }
 }
@@ -77,11 +87,12 @@ function detectPrecheckedBoxes() {
   const boxes = document.querySelectorAll('input[type="checkbox"]');
 
   boxes.forEach(cb => {
-    if (cb.checked) {
+    if (cb.checked && !cb.classList.contains("tripwire-flagged")) {
       updateScore(15, "pre selected option");
 
       cb.style.outline = "3px solid red";
-      cb.title = "pre selected option detected";
+      cb.title = "⚠️ pre-selected option detected";
+      cb.classList.add("tripwire-flagged");
     }
   });
 }
@@ -90,20 +101,37 @@ function detectDelayedPopups() {
   setTimeout(() => {
     const modals = document.querySelectorAll('[class*="modal"], [class*="popup"]');
 
-    if (modals.length > 0) {
-      updateScore(20, "delayed popup detected");
+    modals.forEach(m => {
+      if (!m.classList.contains("tripwire-flagged")) {
+        updateScore(20, "delayed popup detected");
 
-      modals.forEach(m => {
         m.style.outline = "3px solid red";
-      });
-    }
+        m.classList.add("tripwire-flagged");
+      }
+    });
   }, 3000);
 }
 
-// run funcs
-setTimeout(() => {
+// scanning
+function runDetections() {
   detectDiscountFraming();
   detectUrgency();
   detectPrecheckedBoxes();
   detectDelayedPopups();
-}, 1500);
+}
+
+// first run
+setTimeout(runDetections, 1500);
+
+// continuous scan
+setInterval(runDetections, 4000);
+
+// live dom
+const observer = new MutationObserver(() => {
+  runDetections();
+});
+
+observer.observe(document.body, {
+  childList: true,
+  subtree: true
+});
