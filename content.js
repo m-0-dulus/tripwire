@@ -1,4 +1,4 @@
-console.log("tripwire running");
+console.log("tripwire running...");
 
 // states   
 let score = 100;
@@ -12,14 +12,16 @@ widget.id = "tripwire-widget";
 widget.style.position = "fixed";
 widget.style.top = "80px";
 widget.style.right = "20px";
-widget.style.background = "rgba(0,0,0,0.85)";
+widget.style.width = "220px";
+widget.style.background = "linear-gradient(135deg, #0f0f0f, #1c1c1c)";
 widget.style.color = "white";
-widget.style.padding = "12px 16px";
-widget.style.borderRadius = "10px";
-widget.style.fontSize = "14px";
+widget.style.padding = "14px";
+widget.style.borderRadius = "14px";
+widget.style.fontSize = "13px";
 widget.style.zIndex = "999999";
 widget.style.fontFamily = "system-ui, sans-serif";
-widget.style.boxShadow = "0 0 10px rgba(0,0,0,0.4)";
+widget.style.boxShadow = "0 10px 30px rgba(0,0,0,0.6)";
+widget.style.backdropFilter = "blur(10px)";
 widget.style.transition = "all 0.3s ease";
 
 document.body.appendChild(widget);
@@ -29,38 +31,74 @@ const panel = document.createElement("div");
 panel.id = "tripwire-panel";
 
 panel.style.position = "fixed";
-panel.style.top = "140px";
-panel.style.right = "20px";
-panel.style.width = "260px";
-panel.style.maxHeight = "300px";
-panel.style.overflowY = "auto";
-panel.style.background = "rgba(0,0,0,0.9)";
+panel.style.top = "80px";
+panel.style.right = "260px";
+panel.style.width = "300px";
+panel.style.maxHeight = "400px";
+panel.style.background = "linear-gradient(135deg, #111, #1f1f1f)";
 panel.style.color = "white";
-panel.style.padding = "10px";
-panel.style.borderRadius = "10px";
+panel.style.borderRadius = "16px";
 panel.style.fontSize = "13px";
 panel.style.zIndex = "999999";
 panel.style.fontFamily = "system-ui, sans-serif";
+panel.style.boxShadow = "0 15px 40px rgba(0,0,0,0.7)";
 panel.style.display = "none";
+panel.style.overflow = "hidden";
 
 document.body.appendChild(panel);
 
 // render panel
 function renderIssues() {
-  panel.innerHTML = "<b>detected issues:</b><br><br>";
+  panel.innerHTML = `
+    <div style="
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      padding:12px;
+      background:rgba(255,255,255,0.05);
+      border-bottom:1px solid rgba(255,255,255,0.1);
+      font-weight:600;
+    ">
+      <span>issues detected</span>
+      <button id="tripwire-close" style="
+        background:none;
+        border:none;
+        color:white;
+        font-size:16px;
+        cursor:pointer;
+      ">✕</button>
+    </div>
+    <div id="tripwire-list" style="
+      padding:12px;
+      max-height:320px;
+      overflow-y:auto;
+    "></div>
+  `;
+
+  const list = document.getElementById("tripwire-list");
 
   issues.forEach((issue, index) => {
     const item = document.createElement("div");
-    item.style.marginBottom = "6px";
+
+    item.style.padding = "8px";
+    item.style.marginBottom = "8px";
+    item.style.borderRadius = "8px";
+    item.style.background = "rgba(255,77,79,0.15)";
+    item.style.border = "1px solid rgba(255,77,79,0.4)";
     item.innerText = `${index + 1}. ${issue}`;
-    panel.appendChild(item);
+
+    list.appendChild(item);
   });
 }
 
 // toggle
 document.addEventListener("click", (e) => {
   if (e.target.id === "tripwire-toggle") {
-    panel.style.display = panel.style.display === "none" ? "block" : "none";
+    panel.style.display = "block";
+  }
+
+  if (e.target.id === "tripwire-close") {
+    panel.style.display = "none";
   }
 });
 
@@ -73,9 +111,21 @@ function updateScore(amount, reason) {
   issues.push(reason);
 
   widget.innerHTML = `
-    <div style="font-weight:bold;">tripwire running...</div>
-    <div>score: ${score}/100</div>
-    <button id="tripwire-toggle" style="margin-top:6px;padding:4px 8px;border:none;border-radius:6px;cursor:pointer;">
+    <div style="opacity:0.7;">tripwire</div>
+    <div style="font-size:22px;font-weight:bold;margin-top:4px;">
+      ${score}/100
+    </div>
+    <button id="tripwire-toggle" style="
+      margin-top:10px;
+      padding:8px;
+      width:100%;
+      border:none;
+      border-radius:10px;
+      background:linear-gradient(135deg,#ff4d4f,#ff7875);
+      color:white;
+      cursor:pointer;
+      font-weight:600;
+    ">
       view issues (${issues.length})
     </button>
   `;
