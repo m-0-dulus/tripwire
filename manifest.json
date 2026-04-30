@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Tripwire",
+  "name": "tripwire",
   "version": "1.0",
-  "description": "Detects manipulative UX patterns in real time.",
+  "description": "detects manipulative UX patterns in real time.",
   "permissions": ["activeTab", "scripting"],
   "action": {
     "default_popup": "popup.html"
