@@ -114,11 +114,36 @@ function updateScore(amount, reason) {
   renderIssues();
 }
 
+// 🔴 highlight text
+function highlightText(pattern) {
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+
+  let node;
+  while ((node = walker.nextNode())) {
+    if (
+      node.parentNode &&
+      !node.parentNode.classList?.contains("tripwire-highlight") &&
+      pattern.test(node.nodeValue)
+    ) {
+      const span = document.createElement("span");
+
+      span.className = "tripwire-highlight";
+      span.style.background = "rgba(255,0,0,0.15)";
+      span.style.border = "1px solid red";
+      span.style.padding = "2px 4px";
+      span.style.borderRadius = "4px";
+
+      span.textContent = node.nodeValue;
+
+      node.parentNode.replaceChild(span, node);
+    }
+  }
+}
+
 // safe mask
 function maskElement(el, label) {
   if (el.classList.contains("tripwire-masked")) return;
 
-  // 🚫 avoid huge containers
   if (
     el.offsetHeight > 250 ||
     el.offsetWidth > window.innerWidth * 0.9
@@ -128,7 +153,6 @@ function maskElement(el, label) {
   el.style.position = "relative";
 
   const overlay = document.createElement("div");
-  overlay.className = "tripwire-overlay";
   overlay.innerText = `⚠️ hidden: ${label}`;
   overlay.style.position = "absolute";
   overlay.style.top = "0";
@@ -163,55 +187,54 @@ function undoClean() {
 // clean mode
 function cleanPage() {
 
-  // popups
   document.querySelectorAll('[class*="modal"], [class*="popup"]').forEach(m => {
     if (m.offsetHeight < window.innerHeight * 0.8) {
       maskElement(m, "popup");
     }
   });
 
-  // banners (SAFE now)
-  document.querySelectorAll("div").forEach(sec => {
-    const text = sec.innerText.toLowerCase();
+  document.querySelectorAll("button, a, span").forEach(el => {
+    const text = el.innerText.toLowerCase();
 
     if (
-      text.includes("% off") &&
-      sec.offsetHeight < 200 &&
-      sec.offsetWidth < window.innerWidth * 0.8
+      (text.includes("% off") ||
+       text.includes("limited") ||
+       text.includes("only") ||
+       text.includes("hurry")) &&
+      el.offsetHeight < 80
     ) {
-      maskElement(sec, "promo");
+      maskElement(el, "manipulative text");
     }
   });
 
-  // checkboxes
   document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
     if (cb.checked) cb.checked = false;
   });
 
-  // images
   document.querySelectorAll("img").forEach(img => {
     const alt = (img.alt || "").toLowerCase();
 
-    if (
-      (alt.includes("sale") || alt.includes("off")) &&
-      img.width < 300
-    ) {
+    if ((alt.includes("sale") || alt.includes("off")) && img.width < 300) {
       img.style.filter = "blur(6px)";
       maskedElements.push({ el: img, overlay: null });
     }
   });
 }
 
-// detection logic (unchanged)
+// detection logic
 function detectDiscountFraming() {
   const text = document.body.innerText.toLowerCase();
-  if (text.match(/up to \d+% off/)) updateScore(15, "heavy discount framing");
+  if (text.match(/up to \d+% off/)) {
+    updateScore(15, "heavy discount framing");
+    highlightText(/up to \d+% off/i);
+  }
 }
 
 function detectUrgency() {
   const text = document.body.innerText.toLowerCase();
   if (text.includes("only") || text.includes("left") || text.includes("hurry") || text.includes("limited")) {
     updateScore(20, "fake urgency language");
+    highlightText(/only|left|hurry|limited/i);
   }
 }
 
@@ -219,6 +242,7 @@ function detectPrecheckedBoxes() {
   document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
     if (cb.checked && !cb.classList.contains("tripwire-flagged")) {
       updateScore(15, "pre selected option");
+      cb.style.outline = "3px solid red";
       cb.classList.add("tripwire-flagged");
     }
   });
@@ -229,6 +253,7 @@ function detectDelayedPopups() {
     document.querySelectorAll('[class*="modal"], [class*="popup"]').forEach(m => {
       if (!m.classList.contains("tripwire-flagged")) {
         updateScore(20, "delayed popup detected");
+        m.style.outline = "3px solid red";
         m.classList.add("tripwire-flagged");
       }
     });
